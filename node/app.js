@@ -14,9 +14,9 @@ console.log('Node.js Ajax Upload File running at: http://0.0.0.0:3002');
 
 app.post('/uploadimage', multipart(), function(req, res){
   //get filename
-  console.log(req.files)
-  console.log("req.body")
-  console.log(req.body)
+  // console.log(req.files)
+  // console.log("req.body")
+  // console.log(req.body)
 
   var filename = req.files.files.originalFilename || path.basename(req.files.files.path);
   //copy file to a public directory
@@ -24,17 +24,21 @@ app.post('/uploadimage', multipart(), function(req, res){
   //copy file
   fs.createReadStream(req.files.files.path).pipe(fs.createWriteStream(targetPath));
   //return file url
-  console.log(targetPath)
+  // console.log(targetPath)
 
-  var dimensions = sizeOf(targetPath)
+  var serverPath = 'http://' + req.headers.host + '/node/image/' + filename;
+  var dimensions = sizeOf(serverPath);
+
+  console.log(dimensions)
 
   res.json(
     {
       code: 200, 
       msg: {
-        url: 'http://' + req.headers.host + '/node/image/' + filename,
-        width: dimensions.width,
-        height: dimensions.height
+        url: serverPath
+        // ,
+        // width: dimensions.width,
+        // height: dimensions.height
       }
     });
 });
