@@ -6,6 +6,8 @@ import { Provider ,connect} from 'react-redux';
 import { myApp } from './reducer.jsx'
 import { changeText, buttonClick } from './action.jsx'
 
+// require('../app/css/main.sass')
+// require('../../css/main.sass')
 //store
 let store = createStore(myApp);
 

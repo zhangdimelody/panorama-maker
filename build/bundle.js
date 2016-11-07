@@ -70,8 +70,8 @@
 		"./main/reducer.jsx": 197,
 		"./panoramic/action.jsx": 198,
 		"./panoramic/index.jsx": 199,
-		"./panoramic/reducer.jsx": 320,
-		"./upload/index.jsx": 319
+		"./panoramic/reducer.jsx": 322,
+		"./upload/index.jsx": 321
 	};
 	function webpackContext(req) {
 		return __webpack_require__(webpackContextResolve(req));
@@ -141,6 +141,8 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+	// require('../app/css/main.sass')
+	// require('../../css/main.sass')
 	//store
 	var store = (0, _redux.createStore)(_reducer.myApp);
 
@@ -22932,15 +22934,15 @@
 
 	var _OrbitControls2 = _interopRequireDefault(_OrbitControls);
 
-	var _MTLLoader = __webpack_require__(322);
+	var _MTLLoader = __webpack_require__(319);
 
 	var _MTLLoader2 = _interopRequireDefault(_MTLLoader);
 
-	var _UTF8Loader = __webpack_require__(321);
+	var _UTF8Loader = __webpack_require__(320);
 
 	var _UTF8Loader2 = _interopRequireDefault(_UTF8Loader);
 
-	var _index = __webpack_require__(319);
+	var _index = __webpack_require__(321);
 
 	var _index2 = _interopRequireDefault(_index);
 
@@ -22948,7 +22950,7 @@
 
 	var _reactRedux = __webpack_require__(188);
 
-	var _reducer = __webpack_require__(320);
+	var _reducer = __webpack_require__(322);
 
 	var _action = __webpack_require__(198);
 
@@ -80283,150 +80285,391 @@
 
 	'use strict';
 
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	var _three = __webpack_require__(200);
 
-	var _react = __webpack_require__(4);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	var _reactDom = __webpack_require__(36);
-
-	var _reactDom2 = _interopRequireDefault(_reactDom);
+	var _three2 = _interopRequireDefault(_three);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	_three2.default.MTLLoader = function (manager) {
 
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	  this.manager = manager !== undefined ? manager : _three2.default.DefaultLoadingManager;
+	}; /**
+	    * Loads a Wavefront .mtl file specifying materials
+	    *
+	    * @author angelxuanchang
+	    */
 
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	_three2.default.MTLLoader.prototype = {
 
-	var upload = function (_React$Component) {
-	  _inherits(Upload, _React$Component);
+	  constructor: _three2.default.MTLLoader,
 
-	  // mixins: [FormData]
+	  load: function load(url, onLoad, onProgress, onError) {
 
-	  function Upload(props, context) {
-	    _classCallCheck(this, Upload);
+	    var scope = this;
 
-	    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Upload).call(this, props, context));
+	    var loader = new _three2.default.XHRLoader(this.manager);
+	    loader.setPath(this.path);
+	    loader.load(url, function (text) {
 
-	    _this.state = {
-	      data_uri: null,
-	      processing: false
-	    };
+	      onLoad(scope.parse(text));
+	    }, onProgress, onError);
+	  },
 
-	    // bindAll(this, 'handleFile', 'handleSubmit')
-	    return _this;
+	  setPath: function setPath(value) {
+
+	    this.path = value;
+	  },
+
+	  setBaseUrl: function setBaseUrl(value) {
+
+	    // TODO: Merge with setPath()? Or rename to setTexturePath?
+
+	    this.baseUrl = value;
+	  },
+
+	  setCrossOrigin: function setCrossOrigin(value) {
+
+	    this.crossOrigin = value;
+	  },
+
+	  setMaterialOptions: function setMaterialOptions(value) {
+
+	    this.materialOptions = value;
+	  },
+
+	  /**
+	   * Parses loaded MTL file
+	   * @param text - Content of MTL file
+	   * @return {THREE.MTLLoader.MaterialCreator}
+	   */
+	  parse: function parse(text) {
+
+	    var lines = text.split("\n");
+	    var info = {};
+	    var delimiter_pattern = /\s+/;
+	    var materialsInfo = {};
+
+	    for (var i = 0; i < lines.length; i++) {
+
+	      var line = lines[i];
+	      line = line.trim();
+
+	      if (line.length === 0 || line.charAt(0) === '#') {
+
+	        // Blank line or comment ignore
+	        continue;
+	      }
+
+	      var pos = line.indexOf(' ');
+
+	      var key = pos >= 0 ? line.substring(0, pos) : line;
+	      key = key.toLowerCase();
+
+	      var value = pos >= 0 ? line.substring(pos + 1) : "";
+	      value = value.trim();
+
+	      if (key === "newmtl") {
+
+	        // New material
+
+	        info = { name: value };
+	        materialsInfo[value] = info;
+	      } else if (info) {
+
+	        if (key === "ka" || key === "kd" || key === "ks") {
+
+	          var ss = value.split(delimiter_pattern, 3);
+	          info[key] = [parseFloat(ss[0]), parseFloat(ss[1]), parseFloat(ss[2])];
+	        } else {
+
+	          info[key] = value;
+	        }
+	      }
+	    }
+
+	    var materialCreator = new _three2.default.MTLLoader.MaterialCreator(this.baseUrl, this.materialOptions);
+	    materialCreator.setCrossOrigin(this.crossOrigin);
+	    materialCreator.setManager(this.manager);
+	    materialCreator.setMaterials(materialsInfo);
+	    return materialCreator;
 	  }
 
-	  _createClass(Upload, [{
-	    key: 'ajax',
-	    value: function ajax(option) {
-	      var data = void 0,
-	          dataType = void 0,
-	          key = void 0,
-	          method = void 0,
-	          request = void 0;
-	      if (!option.url) {
-	        throw new Error('Need for url');
-	      }
-	      // dataType = option.dataType || 'text';
-	      method = option.method || 'GET';
-	      data = '';
-	      // if (!!option.data && typeof option.data !== 'string') {
-	      //   for (key in option.data) {
-	      //     data += key + "=" + option.data[key] + "&";
-	      //   }
-	      //   data = data.slice(0, data.length - 1);
-	      // } else {
-	      //   data = option.data;
-	      // }
-	      request = new XMLHttpRequest();
-	      request.open(method, option.url, true);
-	      if (method.toUpperCase() === 'POST') {
-	        request.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-	      }
-	      request.onload = function () {
-	        var result = void 0;
-	        if (typeof option.success === "function") {
-	          option.success(JSON.parse(request.responseText));
+	};
+
+	/**
+	 * Create a new THREE-MTLLoader.MaterialCreator
+	 * @param baseUrl - Url relative to which textures are loaded
+	 * @param options - Set of options on how to construct the materials
+	 *                  side: Which side to apply the material
+	 *                        THREE.FrontSide (default), THREE.BackSide, THREE.DoubleSide
+	 *                  wrap: What type of wrapping to apply for textures
+	 *                        THREE.RepeatWrapping (default), THREE.ClampToEdgeWrapping, THREE.MirroredRepeatWrapping
+	 *                  normalizeRGB: RGBs need to be normalized to 0-1 from 0-255
+	 *                                Default: false, assumed to be already normalized
+	 *                  ignoreZeroRGBs: Ignore values of RGBs (Ka,Kd,Ks) that are all 0's
+	 *                                  Default: false
+	 * @constructor
+	 */
+
+	_three2.default.MTLLoader.MaterialCreator = function (baseUrl, options) {
+
+	  this.baseUrl = baseUrl;
+	  this.options = options;
+	  this.materialsInfo = {};
+	  this.materials = {};
+	  this.materialsArray = [];
+	  this.nameLookup = {};
+
+	  this.side = this.options && this.options.side ? this.options.side : _three2.default.FrontSide;
+	  this.wrap = this.options && this.options.wrap ? this.options.wrap : _three2.default.RepeatWrapping;
+	};
+
+	_three2.default.MTLLoader.MaterialCreator.prototype = {
+
+	  constructor: _three2.default.MTLLoader.MaterialCreator,
+
+	  setCrossOrigin: function setCrossOrigin(value) {
+
+	    this.crossOrigin = value;
+	  },
+
+	  setManager: function setManager(value) {
+
+	    this.manager = value;
+	  },
+
+	  setMaterials: function setMaterials(materialsInfo) {
+
+	    this.materialsInfo = this.convert(materialsInfo);
+	    this.materials = {};
+	    this.materialsArray = [];
+	    this.nameLookup = {};
+	  },
+
+	  convert: function convert(materialsInfo) {
+
+	    if (!this.options) return materialsInfo;
+
+	    var converted = {};
+
+	    for (var mn in materialsInfo) {
+
+	      // Convert materials info into normalized form based on options
+
+	      var mat = materialsInfo[mn];
+
+	      var covmat = {};
+
+	      converted[mn] = covmat;
+
+	      for (var prop in mat) {
+
+	        var save = true;
+	        var value = mat[prop];
+	        var lprop = prop.toLowerCase();
+
+	        switch (lprop) {
+
+	          case 'kd':
+	          case 'ka':
+	          case 'ks':
+
+	            // Diffuse color (color under white light) using RGB values
+
+	            if (this.options && this.options.normalizeRGB) {
+
+	              value = [value[0] / 255, value[1] / 255, value[2] / 255];
+	            }
+
+	            if (this.options && this.options.ignoreZeroRGBs) {
+
+	              if (value[0] === 0 && value[1] === 0 && value[1] === 0) {
+
+	                // ignore
+
+	                save = false;
+	              }
+	            }
+
+	            break;
+
+	          default:
+
+	            break;
 	        }
-	      };
-	      request.send(option.data);
+
+	        if (save) {
+
+	          covmat[lprop] = value;
+	        }
+	      }
 	    }
-	  }, {
-	    key: 'submit',
-	    value: function submit() {
 
-	      var formdata = new window.FormData(document.forms.namedItem("uploadForm"));
-	      var xhr = new XMLHttpRequest();
+	    return converted;
+	  },
 
-	      xhr.open('POST', '/uploadimage', true);
-	      xhr.send(formdata);
-	      xhr.onload = function (e) {
-	        var resp = JSON.parse(e.currentTarget.responseText);
-	        this.props.changeMaterial(resp.msg.url);
-	      }.bind(this);
+	  preload: function preload() {
+
+	    for (var mn in this.materialsInfo) {
+
+	      this.create(mn);
 	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
+	  },
 
-	      return _react2.default.createElement(
-	        'form',
-	        { name: 'uploadForm', id: 'uploadForm', ref: 'uploadForm', action: 'javascript:void(0)', method: 'post', enctype: 'multipart/form-data', onSubmit: this.submit.bind(this), style: { position: "absolute", top: "40px" } },
-	        _react2.default.createElement('input', { ref: 'pic', type: 'file', name: 'files' }),
-	        _react2.default.createElement('input', { type: 'submit', value: '提交' })
-	      );
+	  getIndex: function getIndex(materialName) {
+
+	    return this.nameLookup[materialName];
+	  },
+
+	  getAsArray: function getAsArray() {
+
+	    var index = 0;
+
+	    for (var mn in this.materialsInfo) {
+
+	      this.materialsArray[index] = this.create(mn);
+	      this.nameLookup[mn] = index;
+	      index++;
 	    }
-	  }]);
 
-	  return Upload;
-	}(_react2.default.Component);
+	    return this.materialsArray;
+	  },
 
-	module.exports = upload;
+	  create: function create(materialName) {
 
-	// ReactDOM.render(<Upload/>, document.getElementById('upload'))
+	    if (this.materials[materialName] === undefined) {
+
+	      this.createMaterial_(materialName);
+	    }
+
+	    return this.materials[materialName];
+	  },
+
+	  createMaterial_: function createMaterial_(materialName) {
+
+	    // Create material
+
+	    var mat = this.materialsInfo[materialName];
+	    var params = {
+
+	      name: materialName,
+	      side: this.side
+
+	    };
+
+	    for (var prop in mat) {
+
+	      var value = mat[prop];
+
+	      if (value === '') continue;
+
+	      switch (prop.toLowerCase()) {
+
+	        // Ns is material specular exponent
+
+	        case 'kd':
+
+	          // Diffuse color (color under white light) using RGB values
+
+	          params['color'] = new _three2.default.Color().fromArray(value);
+
+	          break;
+
+	        case 'ks':
+
+	          // Specular color (color when light is reflected from shiny surface) using RGB values
+	          params['specular'] = new _three2.default.Color().fromArray(value);
+
+	          break;
+
+	        case 'map_kd':
+
+	          // Diffuse texture map
+
+	          params['map'] = this.loadTexture(this.baseUrl + value);
+	          params['map'].wrapS = this.wrap;
+	          params['map'].wrapT = this.wrap;
+
+	          break;
+
+	        case 'ns':
+
+	          // The specular exponent (defines the focus of the specular highlight)
+	          // A high exponent results in a tight, concentrated highlight. Ns values normally range from 0 to 1000.
+
+	          params['shininess'] = parseFloat(value);
+
+	          break;
+
+	        case 'd':
+
+	          if (value < 1) {
+
+	            params['opacity'] = value;
+	            params['transparent'] = true;
+	          }
+
+	          break;
+
+	        case 'Tr':
+
+	          if (value > 0) {
+
+	            params['opacity'] = 1 - value;
+	            params['transparent'] = true;
+	          }
+
+	          break;
+
+	        case 'map_bump':
+	        case 'bump':
+
+	          // Bump texture map
+
+	          if (params['bumpMap']) break; // Avoid loading twice.
+
+	          params['bumpMap'] = this.loadTexture(this.baseUrl + value);
+	          params['bumpMap'].wrapS = this.wrap;
+	          params['bumpMap'].wrapT = this.wrap;
+
+	          break;
+
+	        default:
+	          break;
+
+	      }
+	    }
+
+	    this.materials[materialName] = new _three2.default.MeshPhongMaterial(params);
+	    return this.materials[materialName];
+	  },
+
+	  loadTexture: function loadTexture(url, mapping, onLoad, onProgress, onError) {
+
+	    var texture;
+	    var loader = _three2.default.Loader.Handlers.get(url);
+	    var manager = this.manager !== undefined ? this.manager : _three2.default.DefaultLoadingManager;
+
+	    if (loader === null) {
+
+	      loader = new _three2.default.TextureLoader(manager);
+	    }
+
+	    if (loader.setCrossOrigin) loader.setCrossOrigin(this.crossOrigin);
+	    texture = loader.load(url, onLoad, onProgress, onError);
+
+	    if (mapping !== undefined) texture.mapping = mapping;
+
+	    return texture;
+	  }
+
+	};
+
+	_three2.default.EventDispatcher.prototype.apply(_three2.default.MTLLoader.prototype);
 
 /***/ },
 /* 320 */
-/***/ function(module, exports) {
-
-	"use strict";
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.data = data;
-	var initialState = {
-	  material: null,
-	  matHeight: 40,
-	  width: window.innerWidth,
-	  height: window.innerHeight
-	};
-
-	function data() {
-	  var state = arguments.length <= 0 || arguments[0] === undefined ? initialState : arguments[0];
-	  var action = arguments[1];
-
-	  switch (action.type) {
-	    case "CHANGEMATERIAL":
-	      return {
-	        material: action.material
-	      };
-	    case "RESIZEWINDOW":
-	      return {
-	        width: action.width,
-	        height: action.height
-	      };
-	    default:
-	      return initialState;
-	  }
-	}
-
-/***/ },
-/* 321 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -81116,393 +81359,152 @@
 	}
 
 /***/ },
-/* 322 */
+/* 321 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var _three = __webpack_require__(200);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _three2 = _interopRequireDefault(_three);
+	var _react = __webpack_require__(4);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _reactDom = __webpack_require__(36);
+
+	var _reactDom2 = _interopRequireDefault(_reactDom);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	_three2.default.MTLLoader = function (manager) {
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  this.manager = manager !== undefined ? manager : _three2.default.DefaultLoadingManager;
-	}; /**
-	    * Loads a Wavefront .mtl file specifying materials
-	    *
-	    * @author angelxuanchang
-	    */
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-	_three2.default.MTLLoader.prototype = {
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	  constructor: _three2.default.MTLLoader,
+	var upload = function (_React$Component) {
+	  _inherits(Upload, _React$Component);
 
-	  load: function load(url, onLoad, onProgress, onError) {
+	  // mixins: [FormData]
 
-	    var scope = this;
+	  function Upload(props, context) {
+	    _classCallCheck(this, Upload);
 
-	    var loader = new _three2.default.XHRLoader(this.manager);
-	    loader.setPath(this.path);
-	    loader.load(url, function (text) {
+	    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Upload).call(this, props, context));
 
-	      onLoad(scope.parse(text));
-	    }, onProgress, onError);
-	  },
-
-	  setPath: function setPath(value) {
-
-	    this.path = value;
-	  },
-
-	  setBaseUrl: function setBaseUrl(value) {
-
-	    // TODO: Merge with setPath()? Or rename to setTexturePath?
-
-	    this.baseUrl = value;
-	  },
-
-	  setCrossOrigin: function setCrossOrigin(value) {
-
-	    this.crossOrigin = value;
-	  },
-
-	  setMaterialOptions: function setMaterialOptions(value) {
-
-	    this.materialOptions = value;
-	  },
-
-	  /**
-	   * Parses loaded MTL file
-	   * @param text - Content of MTL file
-	   * @return {THREE.MTLLoader.MaterialCreator}
-	   */
-	  parse: function parse(text) {
-
-	    var lines = text.split("\n");
-	    var info = {};
-	    var delimiter_pattern = /\s+/;
-	    var materialsInfo = {};
-
-	    for (var i = 0; i < lines.length; i++) {
-
-	      var line = lines[i];
-	      line = line.trim();
-
-	      if (line.length === 0 || line.charAt(0) === '#') {
-
-	        // Blank line or comment ignore
-	        continue;
-	      }
-
-	      var pos = line.indexOf(' ');
-
-	      var key = pos >= 0 ? line.substring(0, pos) : line;
-	      key = key.toLowerCase();
-
-	      var value = pos >= 0 ? line.substring(pos + 1) : "";
-	      value = value.trim();
-
-	      if (key === "newmtl") {
-
-	        // New material
-
-	        info = { name: value };
-	        materialsInfo[value] = info;
-	      } else if (info) {
-
-	        if (key === "ka" || key === "kd" || key === "ks") {
-
-	          var ss = value.split(delimiter_pattern, 3);
-	          info[key] = [parseFloat(ss[0]), parseFloat(ss[1]), parseFloat(ss[2])];
-	        } else {
-
-	          info[key] = value;
-	        }
-	      }
-	    }
-
-	    var materialCreator = new _three2.default.MTLLoader.MaterialCreator(this.baseUrl, this.materialOptions);
-	    materialCreator.setCrossOrigin(this.crossOrigin);
-	    materialCreator.setManager(this.manager);
-	    materialCreator.setMaterials(materialsInfo);
-	    return materialCreator;
-	  }
-
-	};
-
-	/**
-	 * Create a new THREE-MTLLoader.MaterialCreator
-	 * @param baseUrl - Url relative to which textures are loaded
-	 * @param options - Set of options on how to construct the materials
-	 *                  side: Which side to apply the material
-	 *                        THREE.FrontSide (default), THREE.BackSide, THREE.DoubleSide
-	 *                  wrap: What type of wrapping to apply for textures
-	 *                        THREE.RepeatWrapping (default), THREE.ClampToEdgeWrapping, THREE.MirroredRepeatWrapping
-	 *                  normalizeRGB: RGBs need to be normalized to 0-1 from 0-255
-	 *                                Default: false, assumed to be already normalized
-	 *                  ignoreZeroRGBs: Ignore values of RGBs (Ka,Kd,Ks) that are all 0's
-	 *                                  Default: false
-	 * @constructor
-	 */
-
-	_three2.default.MTLLoader.MaterialCreator = function (baseUrl, options) {
-
-	  this.baseUrl = baseUrl;
-	  this.options = options;
-	  this.materialsInfo = {};
-	  this.materials = {};
-	  this.materialsArray = [];
-	  this.nameLookup = {};
-
-	  this.side = this.options && this.options.side ? this.options.side : _three2.default.FrontSide;
-	  this.wrap = this.options && this.options.wrap ? this.options.wrap : _three2.default.RepeatWrapping;
-	};
-
-	_three2.default.MTLLoader.MaterialCreator.prototype = {
-
-	  constructor: _three2.default.MTLLoader.MaterialCreator,
-
-	  setCrossOrigin: function setCrossOrigin(value) {
-
-	    this.crossOrigin = value;
-	  },
-
-	  setManager: function setManager(value) {
-
-	    this.manager = value;
-	  },
-
-	  setMaterials: function setMaterials(materialsInfo) {
-
-	    this.materialsInfo = this.convert(materialsInfo);
-	    this.materials = {};
-	    this.materialsArray = [];
-	    this.nameLookup = {};
-	  },
-
-	  convert: function convert(materialsInfo) {
-
-	    if (!this.options) return materialsInfo;
-
-	    var converted = {};
-
-	    for (var mn in materialsInfo) {
-
-	      // Convert materials info into normalized form based on options
-
-	      var mat = materialsInfo[mn];
-
-	      var covmat = {};
-
-	      converted[mn] = covmat;
-
-	      for (var prop in mat) {
-
-	        var save = true;
-	        var value = mat[prop];
-	        var lprop = prop.toLowerCase();
-
-	        switch (lprop) {
-
-	          case 'kd':
-	          case 'ka':
-	          case 'ks':
-
-	            // Diffuse color (color under white light) using RGB values
-
-	            if (this.options && this.options.normalizeRGB) {
-
-	              value = [value[0] / 255, value[1] / 255, value[2] / 255];
-	            }
-
-	            if (this.options && this.options.ignoreZeroRGBs) {
-
-	              if (value[0] === 0 && value[1] === 0 && value[1] === 0) {
-
-	                // ignore
-
-	                save = false;
-	              }
-	            }
-
-	            break;
-
-	          default:
-
-	            break;
-	        }
-
-	        if (save) {
-
-	          covmat[lprop] = value;
-	        }
-	      }
-	    }
-
-	    return converted;
-	  },
-
-	  preload: function preload() {
-
-	    for (var mn in this.materialsInfo) {
-
-	      this.create(mn);
-	    }
-	  },
-
-	  getIndex: function getIndex(materialName) {
-
-	    return this.nameLookup[materialName];
-	  },
-
-	  getAsArray: function getAsArray() {
-
-	    var index = 0;
-
-	    for (var mn in this.materialsInfo) {
-
-	      this.materialsArray[index] = this.create(mn);
-	      this.nameLookup[mn] = index;
-	      index++;
-	    }
-
-	    return this.materialsArray;
-	  },
-
-	  create: function create(materialName) {
-
-	    if (this.materials[materialName] === undefined) {
-
-	      this.createMaterial_(materialName);
-	    }
-
-	    return this.materials[materialName];
-	  },
-
-	  createMaterial_: function createMaterial_(materialName) {
-
-	    // Create material
-
-	    var mat = this.materialsInfo[materialName];
-	    var params = {
-
-	      name: materialName,
-	      side: this.side
-
+	    _this.state = {
+	      data_uri: null,
+	      processing: false
 	    };
 
-	    for (var prop in mat) {
-
-	      var value = mat[prop];
-
-	      if (value === '') continue;
-
-	      switch (prop.toLowerCase()) {
-
-	        // Ns is material specular exponent
-
-	        case 'kd':
-
-	          // Diffuse color (color under white light) using RGB values
-
-	          params['color'] = new _three2.default.Color().fromArray(value);
-
-	          break;
-
-	        case 'ks':
-
-	          // Specular color (color when light is reflected from shiny surface) using RGB values
-	          params['specular'] = new _three2.default.Color().fromArray(value);
-
-	          break;
-
-	        case 'map_kd':
-
-	          // Diffuse texture map
-
-	          params['map'] = this.loadTexture(this.baseUrl + value);
-	          params['map'].wrapS = this.wrap;
-	          params['map'].wrapT = this.wrap;
-
-	          break;
-
-	        case 'ns':
-
-	          // The specular exponent (defines the focus of the specular highlight)
-	          // A high exponent results in a tight, concentrated highlight. Ns values normally range from 0 to 1000.
-
-	          params['shininess'] = parseFloat(value);
-
-	          break;
-
-	        case 'd':
-
-	          if (value < 1) {
-
-	            params['opacity'] = value;
-	            params['transparent'] = true;
-	          }
-
-	          break;
-
-	        case 'Tr':
-
-	          if (value > 0) {
-
-	            params['opacity'] = 1 - value;
-	            params['transparent'] = true;
-	          }
-
-	          break;
-
-	        case 'map_bump':
-	        case 'bump':
-
-	          // Bump texture map
-
-	          if (params['bumpMap']) break; // Avoid loading twice.
-
-	          params['bumpMap'] = this.loadTexture(this.baseUrl + value);
-	          params['bumpMap'].wrapS = this.wrap;
-	          params['bumpMap'].wrapT = this.wrap;
-
-	          break;
-
-	        default:
-	          break;
-
-	      }
-	    }
-
-	    this.materials[materialName] = new _three2.default.MeshPhongMaterial(params);
-	    return this.materials[materialName];
-	  },
-
-	  loadTexture: function loadTexture(url, mapping, onLoad, onProgress, onError) {
-
-	    var texture;
-	    var loader = _three2.default.Loader.Handlers.get(url);
-	    var manager = this.manager !== undefined ? this.manager : _three2.default.DefaultLoadingManager;
-
-	    if (loader === null) {
-
-	      loader = new _three2.default.TextureLoader(manager);
-	    }
-
-	    if (loader.setCrossOrigin) loader.setCrossOrigin(this.crossOrigin);
-	    texture = loader.load(url, onLoad, onProgress, onError);
-
-	    if (mapping !== undefined) texture.mapping = mapping;
-
-	    return texture;
+	    // bindAll(this, 'handleFile', 'handleSubmit')
+	    return _this;
 	  }
 
+	  _createClass(Upload, [{
+	    key: 'ajax',
+	    value: function ajax(option) {
+	      var data = void 0,
+	          dataType = void 0,
+	          key = void 0,
+	          method = void 0,
+	          request = void 0;
+	      if (!option.url) {
+	        throw new Error('Need for url');
+	      }
+	      // dataType = option.dataType || 'text';
+	      method = option.method || 'GET';
+	      data = '';
+	      // if (!!option.data && typeof option.data !== 'string') {
+	      //   for (key in option.data) {
+	      //     data += key + "=" + option.data[key] + "&";
+	      //   }
+	      //   data = data.slice(0, data.length - 1);
+	      // } else {
+	      //   data = option.data;
+	      // }
+	      request = new XMLHttpRequest();
+	      request.open(method, option.url, true);
+	      if (method.toUpperCase() === 'POST') {
+	        request.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+	      }
+	      request.onload = function () {
+	        var result = void 0;
+	        if (typeof option.success === "function") {
+	          option.success(JSON.parse(request.responseText));
+	        }
+	      };
+	      request.send(option.data);
+	    }
+	  }, {
+	    key: 'submit',
+	    value: function submit() {
+
+	      var formdata = new window.FormData(document.forms.namedItem("uploadForm"));
+	      var xhr = new XMLHttpRequest();
+
+	      xhr.open('POST', '/uploadimage', true);
+	      xhr.send(formdata);
+	      xhr.onload = function (e) {
+	        var resp = JSON.parse(e.currentTarget.responseText);
+	        this.props.changeMaterial(resp.msg.url);
+	      }.bind(this);
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+
+	      return _react2.default.createElement(
+	        'form',
+	        { name: 'uploadForm', id: 'uploadForm', ref: 'uploadForm', action: 'javascript:void(0)', method: 'post', enctype: 'multipart/form-data', onSubmit: this.submit.bind(this), style: { position: "absolute", top: "40px" } },
+	        _react2.default.createElement('input', { ref: 'pic', type: 'file', name: 'files' }),
+	        _react2.default.createElement('input', { type: 'submit', value: '提交' })
+	      );
+	    }
+	  }]);
+
+	  return Upload;
+	}(_react2.default.Component);
+
+	module.exports = upload;
+
+	// ReactDOM.render(<Upload/>, document.getElementById('upload'))
+
+/***/ },
+/* 322 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.data = data;
+	var initialState = {
+	  material: null,
+	  matHeight: 40,
+	  width: window.innerWidth,
+	  height: window.innerHeight
 	};
 
-	_three2.default.EventDispatcher.prototype.apply(_three2.default.MTLLoader.prototype);
+	function data() {
+	  var state = arguments.length <= 0 || arguments[0] === undefined ? initialState : arguments[0];
+	  var action = arguments[1];
+
+	  switch (action.type) {
+	    case "CHANGEMATERIAL":
+	      return {
+	        material: action.material
+	      };
+	    case "RESIZEWINDOW":
+	      return {
+	        width: action.width,
+	        height: action.height
+	      };
+	    default:
+	      return initialState;
+	  }
+	}
 
 /***/ }
 /******/ ]);
